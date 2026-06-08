@@ -80,6 +80,20 @@ export class LogParser {
     }
   }
 
+  // Force a full re-scan on demand. Returns ingest stats so a command can
+  // report concrete numbers instead of relying on (in)visible console logs.
+  rescanNow(): { logDir: string; dirExists: boolean; files: number; newRecords: number } {
+    const dirExists = fs.existsSync(this.logDir);
+    if (!dirExists) {
+      return { logDir: this.logDir, dirExists, files: 0, newRecords: 0 };
+    }
+    const files = this.findJsonlFiles(this.logDir);
+    const before = this.seenIds.size;
+    for (const f of files) this.parseFile(f);
+    this.flushSeen();
+    return { logDir: this.logDir, dirExists, files: files.length, newRecords: this.seenIds.size - before };
+  }
+
   // Recursively collect *.jsonl under dir
   private findJsonlFiles(dir: string): string[] {
     const out: string[] = [];

@@ -11,8 +11,13 @@ export function activate(context: vscode.ExtensionContext): void {
   const statusBar  = new StatusBarManager(tracker);
   const logParser  = new LogParser(tracker, context);
 
-  statusBar.start();
-  logParser.start();
+  try {
+    statusBar.start();
+    logParser.start();
+  } catch (err) {
+    vscode.window.showErrorMessage(`Claude Usage: startup failed — ${String(err)}`);
+    console.error('[ClaudeUsageTracker] startup error:', err);
+  }
 
   // ── Commands ──────────────────────────────────────────────────
 
@@ -65,6 +70,21 @@ export function activate(context: vscode.ExtensionContext): void {
         DashboardPanel.currentPanel?.update();
       }
     )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeUsageTracker.rescan', () => {
+      const r = logParser.rescanNow();
+      statusBar.refresh();
+      DashboardPanel.currentPanel?.update();
+      if (!r.dirExists) {
+        vscode.window.showErrorMessage(`Claude Usage: log dir not found — ${r.logDir}`);
+      } else {
+        vscode.window.showInformationMessage(
+          `Claude Usage: scanned ${r.files} files, ingested ${r.newRecords} new records.`
+        );
+      }
+    })
   );
 
   context.subscriptions.push(

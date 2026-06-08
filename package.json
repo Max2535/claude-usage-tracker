@@ -2,7 +2,7 @@
   "name": "claude-usage-tracker",
   "displayName": "Claude Usage Tracker",
   "description": "Track Anthropic Claude API token usage locally within VS Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -19,6 +19,10 @@
       {
         "command": "claudeUsageTracker.recordUsage",
         "title": "Claude Usage: Record Usage"
+      },
+      {
+        "command": "claudeUsageTracker.rescan",
+        "title": "Claude Usage: Rescan Logs Now"
       },
       {
         "command": "claudeUsageTracker.clearHistory",
