@@ -2,7 +2,7 @@
   "name": "claude-usage-tracker",
   "displayName": "Claude Usage Tracker",
   "description": "Track Anthropic Claude API token usage locally within VS Code",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -56,6 +56,16 @@
           "type": "number",
           "default": 33,
           "description": "USD to THB exchange rate"
+        },
+        "claudeUsageTracker.monthlyBudgetUSD": {
+          "type": "number",
+          "default": 0,
+          "description": "Monthly spend budget in USD (0 = disabled). When set, the status bar popup shows % used, daily burn rate, and a projected exhaustion date."
+        },
+        "claudeUsageTracker.tokenBudget": {
+          "type": "number",
+          "default": 0,
+          "description": "Optional monthly token budget (0 = disabled). Shown alongside the USD budget in the popup."
         }
       }
     }

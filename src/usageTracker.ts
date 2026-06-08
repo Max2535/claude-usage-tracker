@@ -87,6 +87,24 @@ export class UsageTracker {
     return days;
   }
 
+  // Sum every stored day in the current calendar month (UTC).
+  getMonthToDate(): { totalInput: number; totalOutput: number; totalCostUSD: number; daysElapsed: number } {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth(); // 0-based
+    const today = now.getUTCDate();
+
+    let totalInput = 0, totalOutput = 0, totalCostUSD = 0;
+    for (let d = 1; d <= today; d++) {
+      const key = new Date(Date.UTC(year, month, d)).toISOString().split('T')[0];
+      const day = this.getDay(key);
+      totalInput += day.totalInput;
+      totalOutput += day.totalOutput;
+      totalCostUSD += day.totalCostUSD;
+    }
+    return { totalInput, totalOutput, totalCostUSD, daysElapsed: today };
+  }
+
   clearAll(): void {
     const keys = this.context.globalState.keys().filter(k => k.startsWith(this.STORAGE_PREFIX));
     for (const key of keys) {
