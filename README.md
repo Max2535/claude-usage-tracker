@@ -48,11 +48,7 @@ await vscode.commands.executeCommand('claudeUsageTracker.recordUsage', {
 
 ## Log File Locations (Auto-detected)
 
-| OS | Path |
-|---|---|
-| Windows | `%APPDATA%\Claude\logs\` |
-| macOS | `~/Library/Application Support/Claude/logs/` |
-| Linux | `~/.claude/logs/` |
+Reads Claude Code session transcripts (`.jsonl`) recursively from `~/.claude/projects/` on all platforms (Windows: `C:\Users\<you>\.claude\projects\`). Token usage is taken from each entry's `message.usage`.
 
 ## Token Pricing (per 1M tokens)
 

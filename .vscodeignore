@@ -1,6 +1,7 @@
 .vscode/**
 .vscode-test/**
 src/**
+!src/dashboard/dashboard.html
 .gitignore
 .eslintrc.json
 **/*.map

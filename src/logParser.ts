@@ -4,35 +4,45 @@ import * as os from 'os';
 import * as vscode from 'vscode';
 import { UsageTracker } from './usageTracker';
 
+// Claude Code stores per-session transcripts as JSONL under ~/.claude/projects
+// on every platform (Windows: C:\Users\<you>\.claude\projects).
 function getLogDirectory(): string {
-  switch (process.platform) {
-    case 'win32':
-      return path.join(process.env.APPDATA ?? os.homedir(), 'Claude', 'logs');
-    case 'darwin':
-      return path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'logs');
-    default:
-      return path.join(os.homedir(), '.claude', 'logs');
-  }
+  return path.join(os.homedir(), '.claude', 'projects');
+}
+
+interface ClaudeUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
 }
 
 interface ClaudeLogEntry {
-  usage?: {
-    input_tokens?: number;
-    output_tokens?: number;
+  uuid?: string;
+  requestId?: string;
+  message?: {
+    usage?: ClaudeUsage;
+    model?: string;
   };
-  model?: string;
   timestamp?: string;
 }
 
 export class LogParser {
   private tracker: UsageTracker;
+  private context: vscode.ExtensionContext;
   private watchers: fs.FSWatcher[] = [];
-  private seenIds = new Set<string>(); // prevent duplicate ingestion
+  // Dedup keys, persisted across restarts so re-reading files never double-counts.
+  private seenIds: Set<string>;
   private logDir: string;
+  private dirty = false;
 
-  constructor(tracker: UsageTracker) {
+  private static readonly SEEN_KEY = 'claudeUsage_seenIds';
+
+  constructor(tracker: UsageTracker, context: vscode.ExtensionContext) {
     this.tracker = tracker;
+    this.context = context;
     this.logDir = getLogDirectory();
+    this.seenIds = new Set(context.globalState.get<string[]>(LogParser.SEEN_KEY, []));
   }
 
   start(): void {
@@ -46,11 +56,13 @@ export class LogParser {
 
     // Parse existing files on startup
     this.parseAllFiles();
+    this.flushSeen();
 
-    // Watch for new/modified JSONL files
-    const watcher = fs.watch(this.logDir, { persistent: false }, (event, filename) => {
+    // Watch the whole tree (transcripts live in projects/<project>/*.jsonl)
+    const watcher = fs.watch(this.logDir, { persistent: false, recursive: true }, (event, filename) => {
       if (filename && filename.endsWith('.jsonl')) {
         this.parseFile(path.join(this.logDir, filename));
+        this.flushSeen();
       }
     });
 
@@ -60,13 +72,32 @@ export class LogParser {
 
   private parseAllFiles(): void {
     try {
-      const files = fs.readdirSync(this.logDir).filter(f => f.endsWith('.jsonl'));
-      for (const file of files) {
-        this.parseFile(path.join(this.logDir, file));
+      for (const file of this.findJsonlFiles(this.logDir)) {
+        this.parseFile(file);
       }
     } catch (err) {
       console.error('[ClaudeUsageTracker] Error reading log directory:', err);
     }
+  }
+
+  // Recursively collect *.jsonl under dir
+  private findJsonlFiles(dir: string): string[] {
+    const out: string[] = [];
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return out;
+    }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        out.push(...this.findJsonlFiles(full));
+      } else if (e.isFile() && e.name.endsWith('.jsonl')) {
+        out.push(full);
+      }
+    }
+    return out;
   }
 
   private parseFile(filePath: string): void {
@@ -77,17 +108,31 @@ export class LogParser {
       for (const line of lines) {
         try {
           const entry: ClaudeLogEntry = JSON.parse(line);
-          if (!entry.usage?.input_tokens && !entry.usage?.output_tokens) continue;
+          const usage = entry.message?.usage;
+          if (!usage) continue;
 
-          // Use file+line hash as dedup key
-          const dedupKey = `${filePath}:${line.substring(0, 64)}`;
+          // Total input = fresh + cache-write + cache-read tokens.
+          // NOTE: cached tokens are priced differently by Anthropic; this is a
+          // rough aggregate, so cost estimates run slightly high.
+          const inputTokens =
+            (usage.input_tokens ?? 0) +
+            (usage.cache_creation_input_tokens ?? 0) +
+            (usage.cache_read_input_tokens ?? 0);
+          const outputTokens = usage.output_tokens ?? 0;
+          if (inputTokens === 0 && outputTokens === 0) continue;
+
+          // Stable dedup key: per-message uuid/requestId from the transcript.
+          // Falls back to a file+line hash for entries lacking both.
+          const dedupKey =
+            entry.uuid ?? entry.requestId ?? `${filePath}:${line.substring(0, 64)}`;
           if (this.seenIds.has(dedupKey)) continue;
           this.seenIds.add(dedupKey);
+          this.dirty = true;
 
           this.tracker.record(
-            entry.model ?? 'unknown',
-            entry.usage.input_tokens ?? 0,
-            entry.usage.output_tokens ?? 0,
+            entry.message?.model ?? 'unknown',
+            inputTokens,
+            outputTokens,
             'log-parser',
             entry.timestamp
           );
@@ -100,7 +145,15 @@ export class LogParser {
     }
   }
 
+  // Persist the dedup set so a restart does not re-ingest already-counted lines.
+  private flushSeen(): void {
+    if (!this.dirty) return;
+    this.context.globalState.update(LogParser.SEEN_KEY, Array.from(this.seenIds));
+    this.dirty = false;
+  }
+
   dispose(): void {
+    this.flushSeen();
     for (const w of this.watchers) {
       try { w.close(); } catch {}
     }

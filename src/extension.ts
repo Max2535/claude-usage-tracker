@@ -9,7 +9,7 @@ import { LogParser } from './logParser';
 export function activate(context: vscode.ExtensionContext): void {
   const tracker    = new UsageTracker(context);
   const statusBar  = new StatusBarManager(tracker);
-  const logParser  = new LogParser(tracker);
+  const logParser  = new LogParser(tracker, context);
 
   statusBar.start();
   logParser.start();
