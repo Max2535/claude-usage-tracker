@@ -1,0 +1,76 @@
+{
+  "name": "claude-usage-tracker",
+  "displayName": "Claude Usage Tracker",
+  "description": "Track Anthropic Claude API token usage locally within VS Code",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeUsageTracker.showDashboard",
+        "title": "Claude Usage: Show Dashboard"
+      },
+      {
+        "command": "claudeUsageTracker.recordUsage",
+        "title": "Claude Usage: Record Usage"
+      },
+      {
+        "command": "claudeUsageTracker.clearHistory",
+        "title": "Claude Usage: Clear All History"
+      },
+      {
+        "command": "claudeUsageTracker.exportCSV",
+        "title": "Claude Usage: Export CSV"
+      }
+    ],
+    "configuration": {
+      "title": "Claude Usage Tracker",
+      "properties": {
+        "claudeUsageTracker.enableAutoIntercept": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-parse Claude Code log files for usage data"
+        },
+        "claudeUsageTracker.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show token usage in the status bar"
+        },
+        "claudeUsageTracker.currency": {
+          "type": "string",
+          "enum": ["USD", "THB"],
+          "default": "USD",
+          "description": "Display currency for cost estimates"
+        },
+        "claudeUsageTracker.thbRate": {
+          "type": "number",
+          "default": 33,
+          "description": "USD to THB exchange rate"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0",
+    "@types/uuid": "^9.0.0"
+  }
+}
