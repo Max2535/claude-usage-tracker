@@ -1,5 +1,7 @@
 # Claude Usage Tracker
 
+[![GitHub](https://img.shields.io/badge/GitHub-Max2535%2Fclaude--usage--tracker-181717?logo=github)](https://github.com/Max2535/claude-usage-tracker)
+
 A VS Code extension that tracks Anthropic Claude API token usage locally — no external services required.
 
 ## Features
