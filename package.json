@@ -2,7 +2,7 @@
   "name": "claude-usage-tracker",
   "displayName": "Claude Usage Tracker",
   "description": "Track Anthropic Claude API token usage locally within VS Code",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "engines": {
     "vscode": "^1.85.0"
   },

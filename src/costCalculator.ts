@@ -21,14 +21,14 @@ export function calculateCostUSD(model: string, inputTokens: number, outputToken
 export function formatCost(costUSD: number, currency: 'USD' | 'THB', thbRate: number): string {
   if (currency === 'THB') {
     const thb = costUSD * thbRate;
-    return `฿${thb.toFixed(4)}`;
+    return `฿${thb.toFixed(2)}`;
   }
-  return `$${costUSD.toFixed(6)}`;
+  return `$${costUSD.toFixed(2)}`;
 }
 
 export function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}k`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(2)}k`;
   return `${n}`;
 }
 
